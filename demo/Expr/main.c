@@ -1,5 +1,6 @@
 ﻿#include <stdio.h>
 #include "expr.h"
+#include "expr.c"
 
 int main() {
   Expr* expr1 = Expr_new();

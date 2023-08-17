@@ -1,6 +1,6 @@
 ﻿// Copyright (C) 2008,2009,2010 by Tom Kao & MISOO Team & Yonghua Jin. All rights reserved.
 // Released under the terms of the GNU Library or Lesser General Public License (LGPL).
-// Author: Tom Kao(中文名：高焕堂)，MISOO团队，Yonghua Jin(中文名：金永华)
+// Author: Tom Kao(中文名：高焕堂)，MISOO团队，Yonghua Jin(中文名：金永华)，Celefor Lee(中文名：李道纪)
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -53,18 +53,23 @@ static LW_OOPC_MemAllocUnit* lw_oopc_memAllocList = 0;
 
 void* lw_oopc_malloc(size_t size, const char* type, const char* file, int line) {
   void* addr = malloc(size);
+  // 分配给用户的地址
   if (addr != 0) {
     LW_OOPC_MemAllocUnit* pMemAllocUnit = malloc(sizeof(LW_OOPC_MemAllocUnit));
+    // 分配链表节点内存
+
+    // 链表节点分配失败
     if (!pMemAllocUnit) {
       fprintf(stderr, "lw_oopc: error! malloc alloc unit failed.\n");
       exit(1);
     }
-
+    // 文件名太长
     if (strlen(file) >= LW_OOPC_MAX_PATH) {
       fprintf(stderr, "lw_oopc: error! file name is more than %d character: %s\n", LW_OOPC_MAX_PATH, file);
       exit(1);
     }
-
+    
+    // 配置链表属性
     strcpy(pMemAllocUnit->file, file);
 
     pMemAllocUnit->line = line;
@@ -85,14 +90,19 @@ void lw_oopc_free(void* memblock) {
 
   while (currUnit != 0) {
     if (currUnit->addr == memblock) {
+      // 找到目标内存块
       lw_oopc_dbginfo("lw_oopc: free memory in %p, size: %lu\n", currUnit->addr, currUnit->size);
       if (prevUnit == 0) {
+        // 当前节点是头节点，链表头指向第二个数据块
         lw_oopc_memAllocList = currUnit->next;
-        free(currUnit->addr);
-        return;
+      } else {
+        // 当前节点非头节点，上一个节点 next 属性指向下一个节点
+        prevUnit->next = currUnit->next;
       }
-
-      prevUnit->next = currUnit->next;
+      // 释放目标内存块
+      free(currUnit->addr);
+      // 释放链表节点内存
+      free(currUnit);
       return;
     } else {
       prevUnit = currUnit;
@@ -100,10 +110,11 @@ void lw_oopc_free(void* memblock) {
     }
   }
 
-  if (currUnit == 0) {
+  // 多余条件
+  // if (currUnit == 0) {
     fprintf(stderr, "lw_oopc: error! you attemp to free invalid memory.\n");
     exit(1);
-  }
+  // }
 }
 
 void lw_oopc_report() {

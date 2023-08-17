@@ -1,6 +1,6 @@
 // Copyright (C) 2008,2009,2010 by Tom Kao & MISOO Team & Yonghua Jin. All rights reserved.
 // Released under the terms of the GNU Library or Lesser General Public License (LGPL).
-// Author: Tom Kao(中文名：高焕堂)，MISOO 团队，Yonghua Jin(中文名：金永华)
+// Author: Tom Kao(中文名：高焕堂)，MISOO 团队，Yonghua Jin(中文名：金永华)，Celefor Lee(中文名：李道纪)
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -24,35 +24,41 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// 声明类 -> 声明类的CTOR -> -> -> -> ->
+
 #ifndef LW_OOPC_H_INCLUDED_
 #define LW_OOPC_H_INCLUDED_
 
 #include <malloc.h>
 
-// 配置宏 (两种配置选其一):
+/* 配置宏 (两种配置选其一): */
 #define LW_OOPC_USE_STDDEF_OFFSETOF     // 表示使用 C 标准定义的 offsetof
 // #define LW_OOPC_USE_USER_DEFINED_OFFSETOF // 表示使用用户自定义的 lw_oopc_offsetof 宏
 
-// 是否支持内存泄露检测，缺省不支持
+/* 是否支持内存泄露检测，缺省不支持 */
 // #define LW_OOPC_SUPPORT_MEMORY_LEAK_DETECTOR
 
-// 是否支持调试信息打印 (内存分配和释放的详细信息），缺省关闭打印
+/* 是否支持调试信息打印 (内存分配和释放的详细信息），缺省关闭打印 */
 // #define LW_OOPC_PRINT_DEBUG_INFO
 
+/* 偏移量计算宏 */
 #ifdef LW_OOPC_USE_STDDEF_OFFSETOF
-#include <stddef.h>
+#include <stddef.h> // 内置
 #define LW_OOPC_OFFSETOF offsetof
 #endif
 
 #ifdef LW_OOPC_USE_USER_DEFINED_OFFSETOF
 // 有些环境可能不支持，不过，这种情形极少出现
-#define LW_OOPC_OFFSETOF(s,m) (size_t)&(((s*)0)->m)
+#define LW_OOPC_OFFSETOF(s,m) (size_t)&(((s*)0)->m) // 手动实现
+// 手动定义宏，计算某类结构体某成员相对于结构地址的偏移量
 #endif
 
+/* 布尔值定义宏 */
 typedef int lw_oopc_bool;
 #define lw_oopc_true	(1)
 #define lw_oopc_false	(0)
 
+/* 启用内存泄漏检测函数组 */
 #ifdef LW_OOPC_SUPPORT_MEMORY_LEAK_DETECTOR
 
 void* lw_oopc_malloc(size_t size, const char* type, const char* file, int line);
@@ -63,6 +69,7 @@ void lw_oopc_report();
 #define lw_oopc_file_line_params const char* file, int line
 #define lw_oopc_delete lw_oopc_free
 
+/* 禁用内存泄漏检测函数组 */
 #else
 
 void lw_oopc_report();
@@ -74,6 +81,10 @@ void lw_oopc_report();
 
 #endif
 
+/* 面向对象宏正文 */
+/* 
+    声明
+*/
 #define INTERFACE(type)             \
 typedef struct type type;           \
 void type##_ctor(type* t);          \
@@ -89,13 +100,14 @@ struct type
 
 #define CLASS(type)                 \
 typedef struct type type;           \
-type* type##_new(lw_oopc_file_line_params); \
 void type##_ctor(type* t);          \
+type* type##_new(lw_oopc_file_line_params); \
 int type##_dtor(type* t);           \
 void type##_delete(type* t);        \
 struct type
 
 #ifdef LW_OOPC_SUPPORT_MEMORY_LEAK_DETECTOR
+// 声明某类的构造函数
 #define CTOR(type)                                      \
     type* type##_new(const char* file, int line) {      \
     struct type *cthis;                                 \
@@ -151,6 +163,7 @@ void type##_ctor(type* cthis) {
 
 #define EXTENDS(type)		struct type type
 
+// 返回 cthis 实现的父类的指针
 #define SUPER_PTR(cthis, father) ((father*)(&((cthis)->father)))
 
 #define SUPER_PTR_2(cthis, father, grandfather) \
@@ -159,6 +172,7 @@ void type##_ctor(type* cthis) {
 #define SUPER_PTR_3(cthis, father, grandfather, greatgrandfather) \
 	SUPER_PTR(SUPER_PTR_2(cthis, father, grandfather), greatgrandfather)
 
+// 执行父类构造函数（在 CTOR 定义中使用）
 #define SUPER_CTOR(father) \
 	father##_ctor(SUPER_PTR(cthis, father));
 
